@@ -28,3 +28,16 @@
 
 
 ;;; 2.1.2	Tipo tabuleiro
+
+;; cria-tabuleiro : void -> tabuleiro
+(defun cria-tabuleiro ()
+	(make-array '(18 10)))
+
+;; copia-tabuleiro : tabuleiro -> tabuleiro
+(defun copia-tabuleiro (tab)
+	(let (novo (cria-tabuleiro))
+		(dotimes (i 18)
+		(dotimes (j 10)
+			(setf (aref novo i j) 3)))
+		novo))
+
