@@ -54,49 +54,86 @@
 
 ;; tabuleiro-linha-completa-p : tabuleiro x inteiro -> logico
 (defun tabuleiro-linha-completa-p (tab l)
-	(let ((res))
-		(setf res (dotimes (j 10) ; each column
-			(unless (tabuleiro-preenchido-p tab l j)
-				(return nil))))
-		(if (null res) ; what is dis? shouldn't it return T?
-			0
-			res)))
+	(dotimes (j 10) ; each column
+		(unless (tabuleiro-preenchido-p tab l j)
+			(return-from tabuleiro-linha-completa-p nil)))
+	t)
 
+; delete this:
+;	(let ((res))
+;		(setf res (dotimes (j 10) ; each column
+;			(unless (tabuleiro-preenchido-p tab l j)
+;				(return nil))))
+;		(if (null res) ; what is dis? shouldn't it return T?
+;			0
+;			res)))
+; /\ nao tinha acabado
+
+; isto nao esta' no enunciado :O \/
 ;; tabuleiro-linha-vazia-p : tabuleiro x inteiro -> logico
-(defun tabuleiro-linha-vazia-p (tab l)
-	(let ((res))
-		(setf res (dotimes (j 10) ; each column
-			(when (tabuleiro-preenchido-p tab l j)
-				(return nil))))
-		(if (null res)
-			0
-			res)))
+;(defun tabuleiro-linha-vazia-p (tab l)
+;	(let ((res))
+;		(setf res (dotimes (j 10) ; each column
+;			(when (tabuleiro-preenchido-p tab l j)
+;				(return nil))))
+;		(if (null res)
+;			0
+;			res)))
 
 ;; tabuleiro-preenche! : tabuleiro x inteiro x inteiro -> {}
 (defun tabuleiro-preenche! (tab l c)
-	if (and (and (>= l 0) (<= l 17)) (and (>= c 0) (<= c 9))
-		(setf (aref tab l c) T)))
+	(if (and (and (>= l 0) (< l 18)) (and (>= c 0) (< c 10)))
+		(setf (aref tab (- 17 l) c) T)))
 
 ;; tabuleiro-remove-linha! : tabuleiro x inteiro -> {}
 (defun tabuleiro-remove-linha! (tab l)
-	(unless (tabuleiro-linha-vazia-p l)
-		(let (j 0)
-			(dotimes (j 10) ; each column
-				(setf (aref tab l j) (aref tab (+ l 1) j)))) ; copia l+1 para l
-			(tabuleiro-remove-linha! (+ l 1)))) ; recursively ?
+	(let ((n (- 17 l))) ; numero de linhas para mover
+		(dotimes (i n)
+			(let ((ii (- n i))) ; de baixo pra cima
+				(dotimes (j 10) ; copia a linha de cima para baixo
+					(setf (aref tab ii j) (aref tab (- ii 1) j))))))
+	; poe a linha de cima a nil
+	(dotimes (j 10)
+		(setf (aref tab 0 j) nil)))
+
+;	(unless (tabuleiro-linha-vazia-p l)
+;		(let ((j 0))
+;			(dotimes (j 10) ; each column
+;				(setf (aref tab l j) (aref tab (+ l 1) j)))) ; copia l+1 para l
+;			(tabuleiro-remove-linha! (+ l 1)))) ; recursively ?
+
+
+;;;; need to test from here down \/
 
 ;; tabuleiro-topo-preenchido : tabuleiro -> logico
 (defun tabuleiro-topo-preenchido (tab)
-	(let (j 0)
-		(dotimes (j 10)
-			(when (= (tabuleiro-altura-coluna j) 17)
-				(return-from tabuleiro-topo-preenchido T))))
-		(nil)) ; false if not found
+	(dotimes (j 10) ; columns
+		(when (aref tab 0 j)
+			(return-from tabuleiro-topo-preenchido T)))
+	nil)
+; /\ mais eficiente
+;	(let (j 0)
+;		(dotimes (j 10)
+;			(when (= (tabuleiro-altura-coluna j) 17)
+;				(return-from tabuleiro-topo-preenchido T))))
+;		(nil)) ; false if not found
+
+
+;; tabuleiros-iguais : tabuleiro x tabuleiro -> logico
+(defun tabuleiros-iguais (tab1 tab2)
+	(dotimes (i 18)
+	(dotimes (j 10)
+		(unless (= (aref tab1 i j) (aref tab2 i j))
+			(return-from tabuleiros-iguais nil))))
+	T)
 
 ;; tabuleiro->array : tabuleiro -> array
 (defun tabuleiro->array (tab)
-	nil ; returns convert-to-array(tabuleiro)
-)
+	(let ((novo (cria-tabuleiro)))
+		(dotimes (i 18)
+		(dotimes (j 10)
+			(setf (aref novo (- 17 i) j) (aref tab i j))))
+		novo))
 
 
 ;;; 2.1.3	Tipo Estado
