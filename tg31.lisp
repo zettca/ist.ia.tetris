@@ -46,14 +46,13 @@
 
 ;; tabuleiro-preenchido-p : tabuliro x inteiro x inteiro -> logico
 (defun tabuleiro-preenchido-p (tab l c)
-	(aref tab (- 17 l) c))
+	(aref tab l c))
 
 ;; tabuleiro-altura-coluna : tabuleiro x inteiro -> inteiro
 (defun tabuleiro-altura-coluna (tab c)
 	(dotimes (i 18) ; each line
-		(let ((i (- 17 i))) ; quermos comecar em cima. 0 e' em baixo
-			(when (tabuleiro-preenchido-p tab i c)
-				(return-from tabuleiro-altura-coluna (+ i 1)))))
+		(when (tabuleiro-preenchido-p tab i c)
+			(return-from tabuleiro-altura-coluna (- 18 i))))
 	0)
 
 ;; tabuleiro-linha-completa-p : tabuleiro x inteiro -> logico
@@ -66,24 +65,24 @@
 ;; tabuleiro-preenche! : tabuleiro x inteiro x inteiro -> {}
 (defun tabuleiro-preenche! (tab l c)
 	(if (and (>= l 0) (< l 18) (>= c 0) (< c 10))
-		(setf (aref tab (- 17 l) c) T)))
+		(setf (aref tab l c) T)))
 
 ;; tabuleiro-remove-linha! : tabuleiro x inteiro -> {}
 (defun tabuleiro-remove-linha! (tab l)
 	(let ((n (- 17 l))) ; numero de linhas para mover
 		(dotimes (i n)
-			(let ((ii (- n i))) ; de baixo pra cima
+			(let ((ii (+ i l))) ; de baixo pra cima
 				(dotimes (j 10) ; copia a linha de cima para baixo
-					(setf (aref tab ii j) (aref tab (- ii 1) j))))))
+					(setf (aref tab ii j) (aref tab (+ ii 1) j))))))
 	; poe a linha de cima a nil
 	(dotimes (j 10)
-		(setf (aref tab 0 j) nil)))
+		(setf (aref tab 17 j) nil)))
 
 
 ;; tabuleiro-topo-preenchido : tabuleiro -> logico
 (defun tabuleiro-topo-preenchido (tab)
 	(dotimes (j 10) ; columns
-		(unless (aref tab 0 j)
+		(unless (aref tab 17 j)
 			(return-from tabuleiro-topo-preenchido nil)))
 	T)
 
@@ -101,7 +100,7 @@
 	(let ((novo (make-array '(18 10))))
 		(dotimes (i 18)
 		(dotimes (j 10)
-			(setf (aref novo (- 17 i) j) (aref tab i j))))
+			(setf (aref novo i j) (aref tab i j))))
 		novo))
 
 
@@ -163,7 +162,9 @@
 
 ;; accoes : estado -> lista
 (defun accoes (estado)
-	nil)
+	(let ((next-peca (first (estado-pecas-por-colocar estado))))
+		; next-peca combinations
+	nil))
 	;
 	;
 	;
