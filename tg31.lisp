@@ -8,6 +8,10 @@
 
 
 
+;;; Funcoes auxiliares
+
+
+
 
 ;;; 2.1 Tipos
 
@@ -59,30 +63,9 @@
 			(return-from tabuleiro-linha-completa-p nil)))
 	t)
 
-; delete this:
-;	(let ((res))
-;		(setf res (dotimes (j 10) ; each column
-;			(unless (tabuleiro-preenchido-p tab l j)
-;				(return nil))))
-;		(if (null res) ; what is dis? shouldn't it return T?
-;			0
-;			res)))
-; /\ nao tinha acabado
-
-; isto nao esta' no enunciado :O \/
-;; tabuleiro-linha-vazia-p : tabuleiro x inteiro -> logico
-;(defun tabuleiro-linha-vazia-p (tab l)
-;	(let ((res))
-;		(setf res (dotimes (j 10) ; each column
-;			(when (tabuleiro-preenchido-p tab l j)
-;				(return nil))))
-;		(if (null res)
-;			0
-;			res)))
-
 ;; tabuleiro-preenche! : tabuleiro x inteiro x inteiro -> {}
 (defun tabuleiro-preenche! (tab l c)
-	(if (and (and (>= l 0) (< l 18)) (and (>= c 0) (< c 10)))
+	(if (and (>= l 0) (< l 18) (>= c 0) (< c 10))
 		(setf (aref tab (- 17 l) c) T)))
 
 ;; tabuleiro-remove-linha! : tabuleiro x inteiro -> {}
@@ -96,29 +79,15 @@
 	(dotimes (j 10)
 		(setf (aref tab 0 j) nil)))
 
-;	(unless (tabuleiro-linha-vazia-p l)
-;		(let ((j 0))
-;			(dotimes (j 10) ; each column
-;				(setf (aref tab l j) (aref tab (+ l 1) j)))) ; copia l+1 para l
-;			(tabuleiro-remove-linha! (+ l 1)))) ; recursively ?
-
-
-;;;; need to test from here down \/
 
 ;; tabuleiro-topo-preenchido : tabuleiro -> logico
 (defun tabuleiro-topo-preenchido (tab)
 	(dotimes (j 10) ; columns
-		(when (aref tab 0 j)
-			(return-from tabuleiro-topo-preenchido T)))
-	nil)
-; /\ mais eficiente
-;	(let (j 0)
-;		(dotimes (j 10)
-;			(when (= (tabuleiro-altura-coluna j) 17)
-;				(return-from tabuleiro-topo-preenchido T))))
-;		(nil)) ; false if not found
+		(unless (aref tab 0 j)
+			(return-from tabuleiro-topo-preenchido nil)))
+	T)
 
-
+;; not tested
 ;; tabuleiros-iguais : tabuleiro x tabuleiro -> logico
 (defun tabuleiros-iguais (tab1 tab2)
 	(dotimes (i 18)
@@ -129,7 +98,7 @@
 
 ;; tabuleiro->array : tabuleiro -> array
 (defun tabuleiro->array (tab)
-	(let ((novo (cria-tabuleiro)))
+	(let ((novo (make-array '(18 10))))
 		(dotimes (i 18)
 		(dotimes (j 10)
 			(setf (aref novo (- 17 i) j) (aref tab i j))))
@@ -139,36 +108,48 @@
 ;;; 2.1.3	Tipo Estado
 
 (defstruct estado
-	(pontos 1337)
+	(pontos 0)
 	pecas-por-colocar
 	pecas-colocadas
 	tabuleiro)
 
 
 ;; copia-estado : estado -> estado
-(defun copia-estado (estado)
-	(copy-structure estado))
+(defun copia-estado (e)
+	(let ((novo))
+		(setf novo (make-estado))
+		; temos de copiar o tabuleiro e as listas,
+		; otherwise fica uma ref para a mesma
+		(setf (estado-pontos novo) (estado-pontos e))
+		(setf (estado-pecas-por-colocar novo)
+					(copy-list (estado-pecas-por-colocar e)))
+		(setf (estado-pecas-colocadas novo)
+					(copy-list (estado-pecas-colocadas e)))
+		(setf (estado-tabuleiro novo)
+			  (copia-tabuleiro (estado-tabuleiro e)))
+		novo))
 
 ;; estados-iguais-p : estado x estado -> logico
-(defun estados-iguais-p (estado1 estado2)
-	(equal estado1 estado2)) ; should be wrong
+(defun estados-iguais-p (e1 e2)
+	; temos de comparar os campos todos, em especial o tabuleiro
+	(and (equal (estado-pontos e1) (estado-pontos e2))
+		 (equal (estado-pecas-por-colocar e1) (estado-pecas-por-colocar e2))
+		 (equal (estado-pecas-colocadas e1) (estado-pecas-colocadas e2))
+		 (tabuleiros-iguais-p (estado-tabuleiro e1) (estado-tabuleiro e2))))
 
 ;; estado-final-p : estado ->logico
 (defun estado-final-p (estado)
-	(let (score :pontos)
-		(print score))
-	; returns if estado.pecas-por-colocar == nil || estado.tabuleiro.tabuleiro-topo-preenchido == T
-)
+	(or (not (estado-pecas-por-colocar estado)) ; if empty
+		(tabuleiro-topo-preenchido (estado-tabuleiro estado))))
 
 ;;; 2.1.4	Tipo Problema
 
 (defstruct problema
-	estado-inicial
-	solucoes
-	accoes
-	resultado
-	custo-caminho
-)
+	estado-inicial		; estado
+	solucao				; funcao : estado -> logico
+	accoes				; funcao : estado -> lista de accoes
+	resultado			; funcao : estado x accao -> estado
+	custo-caminho)		; funcao : estado -> inteiro
 
 ;;; 2.2 Funcoes
 
@@ -177,12 +158,24 @@
 
 ;; solucao : estado -> logico
 (defun solucao (estado)
-	nil ; returns if estado.pecas-por-colocar == nil && estado.tabuleiro.tabuleiro-topo-preenchido == nil
-)
-
+	(and (not (estado-pecas-por-colocar estado))
+		 (not (tabuleiro-topo-preenchido (estado-tabuleiro estado)))))
 
 ;; accoes : estado -> lista
 (defun accoes (estado)
-	nil ; returns estado.pecas-por-colocar[0] possible combinations
-)
+	nil)
+	;
+	;
+	;
 
+;; resultado : estado x accao -> estado
+(defun resultado (estado accao)
+	nil) ; aplica accao no estado atual. retorna novo estado
+
+;; qualidade : estado -> inteiro
+(defun qualidade (estado)
+	nil) ; returns CUSTO do estado. should be negative
+
+;; custo-oportunidade : estado -> inteiro
+(defun custo-oportunidade (estado)
+	nil) ;
