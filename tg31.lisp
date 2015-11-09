@@ -1,12 +1,10 @@
-;;;; Projeto IA
-;;;; 1 Sem 2015-2016
-;;;; Grupo tg31
+;;;; Projeto Inteligencia Artificial
+;;;; Semestre 1 | 2015-2016
+;;;; Grupo TG031
 ;;;;
 ;;;; 77944 Luis Silva
 ;;;; 78013 Bruno Henriques
 ;;;; 78040 Sofia Reis
-
-
 
 
 ;;; Funcoes auxiliares
@@ -14,7 +12,6 @@
 ;; AUX peca-largura : peca -> inteiro
 (defun peca-largura (p)
 	(array-dimension p 1))
-
 
 ;; AUX list-max : lista -> inteiro
 (defun list-max (l)
@@ -26,6 +23,8 @@
 		max))
 
 
+
+
 ;;; 2.1 Tipos
 
 ;;; 2.1.1	Tipo Accao
@@ -33,7 +32,6 @@
 ;; cria-accao : inteiro x array -> accao
 (defun cria-accao (c p)
 	(cons c p))
-
 
 ;; accao-coluna : accao -> inteiro
 (defun accao-coluna (accao)
@@ -100,16 +98,18 @@
 			(return-from tabuleiro-topo-preenchido-p T)))
 	nil)
 
-;; AUX tabuleiro-remove-linhas-preenchidas : tabuleiro -> inteiro (nr)
-(defun tabuleiro-remove-linhas-preenchidas (tab)
-	(let ((count 0))
-		(dotimes (l 0)
-			(when	(tabuleiro-linha-completa-p tab l)
-					(tabuleiro-remove-linha tab l)
-					(incf count)))
+;; AUX tabuleiro-remove-linhas-preenchidas! : tabuleiro -> inteiro (nr)
+(defun tabuleiro-remove-linhas-preenchidas! (tab)
+	(let ((count 0)(l 0))
+		(loop
+			(unless (< l 18)
+				(return))
+			(if	(tabuleiro-linha-completa-p tab l)
+				(progn	(tabuleiro-remove-linha! tab l)
+						(incf count))
+				(incf l)))
 		count))
 
-;; not tested
 ;; tabuleiros-iguais-p : tabuleiro x tabuleiro -> logico
 (defun tabuleiros-iguais-p (tab1 tab2)
 	(dotimes (i 18)
@@ -134,7 +134,6 @@
 	(pecas-por-colocar ())
 	(pecas-colocadas ())
 	(tabuleiro (cria-tabuleiro)))
-
 
 ;; copia-estado : estado -> estado
 (defun copia-estado (e)
@@ -163,6 +162,7 @@
 (defun estado-final-p (estado)
 	(or (not (estado-pecas-por-colocar estado)) ; if empty
 		(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
+
 
 ;;; 2.1.4	Tipo Problema
 
@@ -232,7 +232,7 @@
 			(setf vazio-peca (calcula-espaco-base-peca-coluna peca i))
 			(setf shift (min shift (+ vazio-tab vazio-peca))))
 
-		(- max shift)))
+		(- max shift)))	; linha = max - shift
 
 
 ;; AUX coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}
@@ -244,7 +244,7 @@
 		(dotimes (i (array-dimension peca 0)) ; lines
 		(dotimes (j (array-dimension peca 1)) ; columns
 			(when (aref peca i j)
-				(tabuleiro-preenche! tab (+ i l) (+ j c)))))))
+				(tabuleiro-preenche! tab (+ l i) (+ c j)))))))
 
 ;; resultado : estado x accao -> estado
 (defun resultado (estado accao)
@@ -258,13 +258,13 @@
 				(rest (estado-pecas-por-colocar novo-estado)))
 
 
-		(coloca-peca-no-tabuleiro! (estado-tabuleiro estado) accao)
+		(coloca-peca-no-tabuleiro! (estado-tabuleiro novo-estado) accao)
 
 		; verifica topo preenchido
-		(unless	(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
+		(unless	(tabuleiro-topo-preenchido-p (estado-tabuleiro novo-estado))
 			; remove linhas e calcula pontos
 			(incf	(estado-pontos novo-estado)
-					(calcula-pontos (tabuleiro-remove-linhas-preenchidas (estado-tabuleiro novo-estado)))))
+					(calcula-pontos (tabuleiro-remove-linhas-preenchidas! (estado-tabuleiro novo-estado)))))
 
 	novo-estado))
 
@@ -285,10 +285,6 @@
 ; entrega:
 (load "utils.fas")
 
-; testing:
-; (load (compile-file "utils.lisp"))
-
-
 ;;; CONSTANTES
 
 ;; configuracoes de cada peca
@@ -299,7 +295,6 @@
 (defconstant peca-l (list peca-l0 peca-l1 peca-l2 peca-l3))
 (defconstant peca-j (list peca-j0 peca-j1 peca-j2 peca-j3))
 (defconstant peca-t (list peca-t0 peca-t1 peca-t2 peca-t3))
-
 
 
 ;; AUX peca-configuracoes : peca -> lista de pecas
