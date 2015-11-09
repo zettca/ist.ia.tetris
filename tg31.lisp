@@ -195,7 +195,7 @@
 			(setf	lista-accoes
 					(append	(accoes-aux-uma-configuracao (nth i configs))
 							lista-accoes)))
-	lista-accoes))
+	(reverse lista-accoes)))
 
 ;; AUX ;; devolve as accoes para uma configuracao
 (defun accoes-aux-uma-configuracao (config)
@@ -235,7 +235,7 @@
 		(- max shift)))
 
 
-;; coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}
+;; AUX coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}
 (defun coloca-peca-no-tabuleiro! (tab accao)
 	(let ((peca (accao-peca accao))
 		(l (calcula-linha tab accao))
@@ -251,11 +251,11 @@
 	(let ((novo-estado (copia-estado estado))) ; novo estado a ser retornado
 
 		; ** atualiza listas de pecas ** ;
+		; adiciona peca as pecas colocadas
+		(push (first (estado-pecas-por-colocar novo-estado)) (estado-pecas-colocadas novo-estado))
 		; remove peca colocada
 		(setf	(estado-pecas-por-colocar novo-estado)
 				(rest (estado-pecas-por-colocar novo-estado)))
-		; adiciona peca as pecas colocadas
-		(push (first (estado-pecas-por-colocar novo-estado)) (estado-pecas-colocadas novo-estado))
 
 
 		(coloca-peca-no-tabuleiro! (estado-tabuleiro estado) accao)
