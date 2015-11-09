@@ -108,12 +108,12 @@
 		count))
 
 ;; not tested
-;; tabuleiros-iguais : tabuleiro x tabuleiro -> logico
-(defun tabuleiros-iguais (tab1 tab2)
+;; tabuleiros-iguais-p : tabuleiro x tabuleiro -> logico
+(defun tabuleiros-iguais-p (tab1 tab2)
 	(dotimes (i 18)
 	(dotimes (j 10)
 		(unless (= (aref tab1 i j) (aref tab2 i j))
-			(return-from tabuleiros-iguais nil))))
+			(return-from tabuleiros-iguais-p nil))))
 	T)
 
 ;; tabuleiro->array : tabuleiro -> array
