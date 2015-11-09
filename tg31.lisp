@@ -29,18 +29,19 @@
 ;;; 2.1 Tipos
 
 ;;; 2.1.1	Tipo Accao
-(defstruct accao
-	coluna
-	peca)
 
 ;; cria-accao : inteiro x array -> accao
 (defun cria-accao (c p)
-	(make-accao :coluna c :peca p))
+	(cons c p))
 
 
-; definidos automaticamente:
 ;; accao-coluna : accao -> inteiro
+(defun accao-coluna (accao)
+	(first accao))
+
 ;; accao-peca : accao -> array
+(defun accao-peca (accao)
+	(rest accao))
 
 
 ;;; 2.1.2	Tipo Tabuleiro
@@ -64,8 +65,9 @@
 ;; tabuleiro-altura-coluna : tabuleiro x inteiro -> inteiro
 (defun tabuleiro-altura-coluna (tab c)
 	(dotimes (i 18) ; each line
-		(when (tabuleiro-preenchido-p tab i c)
-			(return-from tabuleiro-altura-coluna (- 18 i))))
+		(let ((i (- 17 i)))
+			(when (tabuleiro-preenchido-p tab i c)
+				(return-from tabuleiro-altura-coluna (+ 1 i)))))
 	0)
 
 ;; tabuleiro-linha-completa-p : tabuleiro x inteiro -> logico
@@ -112,13 +114,17 @@
 (defun tabuleiros-iguais-p (tab1 tab2)
 	(dotimes (i 18)
 	(dotimes (j 10)
-		(unless (= (aref tab1 i j) (aref tab2 i j))
+		(unless (eql (aref tab1 i j) (aref tab2 i j))
 			(return-from tabuleiros-iguais-p nil))))
 	T)
 
 ;; tabuleiro->array : tabuleiro -> array
 (defun tabuleiro->array (tab)
 	(copia-tabuleiro tab)) ; a nossa representacao e' um array, so it's done
+
+;; array->tabuleiro : array -> tabuleiro
+(defun array->tabuleiro (array)
+	(copia-tabuleiro array))
 
 
 ;;; 2.1.3	Tipo Estado
