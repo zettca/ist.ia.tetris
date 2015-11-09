@@ -1,16 +1,41 @@
 ;;;; Projeto IA
 ;;;; 1 Sem 2015-2016
 ;;;; Grupo tg31
+;;;;
+;;;; 77944 Luis Silva
+;;;; 78013 Bruno Henriques
+;;;; 78040 Sofia Reis
 
-
-; replace with (load "utils.fas")
-;(load (compile-file "utils.lisp"))
 
 
 
 ;;; Funcoes auxiliares
 
+;; AUX peca-largura : peca -> inteiro
+(defun peca-largura (p)
+	(array-dimension p 1))
 
+
+;; AUX peca-configuracoes : peca -> lista de pecas
+(defun peca-configuracoes (p)
+	(cond
+		((eq p 'o) peca-o)
+		((eq p 'i) peca-i)
+		((eq p 's) peca-s)
+		((eq p 'z) peca-z)
+		((eq p 'l) peca-l)
+		((eq p 'j) peca-j)
+		((eq p 't) peca-t)
+		(t nil)))
+
+;; AUX list-max : lista -> inteiro
+(defun list-max (l)
+	(let ((max (first l)))
+		(dotimes (i (length l))
+			(let ((el (nth i l)))
+				(when	(> el max)
+						(setf max el))))
+		max))
 
 
 ;;; 2.1 Tipos
@@ -78,13 +103,21 @@
 	(dotimes (j 10)
 		(setf (aref tab 17 j) nil)))
 
-
 ;; tabuleiro-topo-preenchido : tabuleiro -> logico
 (defun tabuleiro-topo-preenchido (tab)
 	(dotimes (j 10) ; columns
 		(unless (aref tab 17 j)
 			(return-from tabuleiro-topo-preenchido nil)))
 	T)
+
+;; AUX tabuleiro-remove-linhas-preenchidas : tabuleiro -> inteiro (nr)
+(defun tabuleiro-remove-linhas-preenchidas (tab)
+	(let ((count 0))
+		(dotimes (l 0)
+			(when	(tabuleiro-linha-completa-p tab l)
+					(tabuleiro-remove-linha tab l)
+					(incf count)))
+		count))
 
 ;; not tested
 ;; tabuleiros-iguais : tabuleiro x tabuleiro -> logico
@@ -97,11 +130,7 @@
 
 ;; tabuleiro->array : tabuleiro -> array
 (defun tabuleiro->array (tab)
-	(let ((novo (make-array '(18 10))))
-		(dotimes (i 18)
-		(dotimes (j 10)
-			(setf (aref novo i j) (aref tab i j))))
-		novo))
+	(copia-tabuleiro tab)) ; a nossa representacao e' um array, so it's done
 
 
 ;;; 2.1.3	Tipo Estado
@@ -157,26 +186,122 @@
 
 ;; solucao : estado -> logico
 (defun solucao (estado)
-	(and (not (estado-pecas-por-colocar estado))
+	(and (not (estado-pecas-por-colocar estado)) ; se lista vazia
 		 (not (tabuleiro-topo-preenchido (estado-tabuleiro estado)))))
 
 ;; accoes : estado -> lista
 (defun accoes (estado)
-	(let ((next-peca (first (estado-pecas-por-colocar estado))))
-		; next-peca combinations
-	nil))
-	;
-	;
-	;
+	(let ((peca (first (estado-pecas-por-colocar estado))))
+		(accoes-aux-peca-configuracoes (peca-configuracoes peca))))
+
+;; AUX ;; devolve as accoes para as configuracoes da peca
+(defun accoes-aux-peca-configuracoes (configs)
+	(let ((lista-accoes (list)))
+		(dotimes (i (list-length configs))
+			(setf	lista-accoes
+					(append	(accoes-aux-uma-configuracao (nth i configs))
+							lista-accoes)))
+	lista-accoes))
+
+;; AUX ;; devolve as accoes para uma configuracao
+(defun accoes-aux-uma-configuracao (config)
+	(let ((largura (peca-largura config))
+		(lista-accoes (list)))
+			(dotimes (i (- 11 largura)) ; for each horizontal fit
+				(push (cria-accao i config) lista-accoes))
+	lista-accoes))
+
+;; AUX calcula-pontos : inteiro -> inteiro
+(defun calcula-pontos (linhas-removidas-count)
+	(nth linhas-removidas-count '(0 100 300 500 800)))
+
+;; AUX calcula-espaco-base-peca-coluna : peca x inteiro -> inteiro
+;; numero de posicoes vazias na base da peca, numa coluna
+(defun calcula-espaco-base-peca-coluna (peca coluna)
+	(dotimes (l (array-dimension peca 0)) ; percorre as linhas
+		(when (aref peca l coluna)		  ; quando linha estiver preenchida
+			(return-from calcula-espaco-base-peca-coluna (+ 1 l))))
+	0)
+
+;; calcula-linha : tabuleiro x accao -> {}
+(defun calcula-linha (tab accao)
+	(let ((max 0) (shift 0) (vazio-tab 0) (vazio-peca 0)
+		(peca (accao-peca accao))
+		(width (peca-largura (accao-peca accao)))
+		(coluna (accao-coluna accao)))
+
+		(dotimes (i width) ; calcula max
+			(setf max (max max (tabuleiro-altura-coluna (+ coluna i)))))
+
+		(dotimes (i width) ; calcula shift
+			(setf vazio-tab (- max (tabuleiro-altura-coluna (+ coluna i))))
+			(setf vazio-peca (calcula-espaco-base-peca-coluna peca i))
+			(setf shift (min shift (+ vazio-tab vazio-peca))))
+
+		(- max shift)))
+
+
+;; coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}
+(defun coloca-peca-no-tabuleiro! (tab accao)
+	(let ((peca (accao-peca accao))
+		(l (calcula-linha tab accao))
+		(c (accao-coluna accao)))
+
+		(dotimes (i (array-dimension peca 0)) ; lines
+		(dotimes (j (array-dimension peca 1)) ; columns
+			(when (aref peca i j)
+				(tabuleiro-preenche! tab (+ i l) (+ j c)))))))
 
 ;; resultado : estado x accao -> estado
 (defun resultado (estado accao)
-	nil) ; aplica accao no estado atual. retorna novo estado
+	(let ((novo-estado (copia-estado estado))) ; novo estado a ser retornado
+
+		; ** atualiza listas de pecas ** ;
+		; remove peca colocada
+		(setf	(estado-pecas-por-colocar novo-estado)
+				(rest (estado-pecas-por-colocar novo-estado)))
+		; adiciona peca as pecas colocadas
+		(push (first (estado-pecas-por-colocar novo-estado)) (estado-pecas-colocadas novo-estado))
+
+
+		(coloca-peca-no-tabuleiro! (estado-tabuleiro estado) accao)
+
+		; verifica topo preenchido
+		(unless	(tabuleiro-topo-preenchido (estado-tabuleiro estado))
+			; remove linhas e calcula pontos
+			(incf	(estado-pontos novo-estado)
+					(calcula-pontos (tabuleiro-remove-linhas-preenchidas (estado-tabuleiro novo-estado)))))
+
+	novo-estado))
 
 ;; qualidade : estado -> inteiro
 (defun qualidade (estado)
-	nil) ; returns CUSTO do estado. should be negative
+	(- 0 (estado-pontos))) ; returns CUSTO do estado. should be negative
 
 ;; custo-oportunidade : estado -> inteiro
 (defun custo-oportunidade (estado)
-	nil) ;
+	(let ((max-pontos 0) (pecas-colocadas (estado-pecas-colocadas estado)))
+		(dotimes (i (length pecas-colocadas))
+			(let ((peca (nth i pecas-colocas)))
+				(incf max-pontos (calcula-pontos (array-dimension peca 0)))))
+		(- max-pontos (estado-pontos estado))))
+
+
+
+; entrega:
+(load "utils.fas")
+
+; testing:
+; (load (compile-file "utils.lisp"))
+
+
+;;; CONSTANTES
+
+;; configuracoes de cada peca
+(defconstant peca-o (list peca-o0))
+(defconstant peca-i (list peca-i0 peca-i1))
+(defconstant peca-s (list peca-s0 peca-s1))
+(defconstant peca-z (list peca-z0 peca-z1))
+(defconstant peca-l (list peca-l0 peca-l1 peca-l2 peca-l3))
+(defconstant peca-j (list peca-j0 peca-j1 peca-j2 peca-j3))
+(defconstant peca-t (list peca-t0 peca-t1 peca-t2 peca-t3))
