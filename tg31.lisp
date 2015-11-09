@@ -16,18 +16,6 @@
 	(array-dimension p 1))
 
 
-;; AUX peca-configuracoes : peca -> lista de pecas
-(defun peca-configuracoes (p)
-	(cond
-		((eq p 'o) peca-o)
-		((eq p 'i) peca-i)
-		((eq p 's) peca-s)
-		((eq p 'z) peca-z)
-		((eq p 'l) peca-l)
-		((eq p 'j) peca-j)
-		((eq p 't) peca-t)
-		(t nil)))
-
 ;; AUX list-max : lista -> inteiro
 (defun list-max (l)
 	(let ((max (first l)))
@@ -103,12 +91,12 @@
 	(dotimes (j 10)
 		(setf (aref tab 17 j) nil)))
 
-;; tabuleiro-topo-preenchido : tabuleiro -> logico
-(defun tabuleiro-topo-preenchido (tab)
+;; tabuleiro-topo-preenchido-p : tabuleiro -> logico
+(defun tabuleiro-topo-preenchido-p (tab)
 	(dotimes (j 10) ; columns
-		(unless (aref tab 17 j)
-			(return-from tabuleiro-topo-preenchido nil)))
-	T)
+		(when (aref tab 17 j)
+			(return-from tabuleiro-topo-preenchido-p T)))
+	nil)
 
 ;; AUX tabuleiro-remove-linhas-preenchidas : tabuleiro -> inteiro (nr)
 (defun tabuleiro-remove-linhas-preenchidas (tab)
@@ -137,9 +125,9 @@
 
 (defstruct estado
 	(pontos 0)
-	pecas-por-colocar
-	pecas-colocadas
-	tabuleiro)
+	(pecas-por-colocar ())
+	(pecas-colocadas ())
+	(tabuleiro (cria-tabuleiro)))
 
 
 ;; copia-estado : estado -> estado
@@ -168,16 +156,16 @@
 ;; estado-final-p : estado ->logico
 (defun estado-final-p (estado)
 	(or (not (estado-pecas-por-colocar estado)) ; if empty
-		(tabuleiro-topo-preenchido (estado-tabuleiro estado))))
+		(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
 
 ;;; 2.1.4	Tipo Problema
 
 (defstruct problema
-	estado-inicial		; estado
-	solucao				; funcao : estado -> logico
-	accoes				; funcao : estado -> lista de accoes
-	resultado			; funcao : estado x accao -> estado
-	custo-caminho)		; funcao : estado -> inteiro
+	estado-inicial			; estado
+	(solucao 'solucao)		; funcao : estado -> logico
+	(accoes 'accoes)		; funcao : estado -> lista de accoes
+	(resultado 'resultado)	; funcao : estado x accao -> estado
+	custo-caminho)			; funcao : estado -> inteiro
 
 ;;; 2.2 Funcoes
 
@@ -187,7 +175,7 @@
 ;; solucao : estado -> logico
 (defun solucao (estado)
 	(and (not (estado-pecas-por-colocar estado)) ; se lista vazia
-		 (not (tabuleiro-topo-preenchido (estado-tabuleiro estado)))))
+		 (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)))))
 
 ;; accoes : estado -> lista
 (defun accoes (estado)
@@ -231,10 +219,10 @@
 		(coluna (accao-coluna accao)))
 
 		(dotimes (i width) ; calcula max
-			(setf max (max max (tabuleiro-altura-coluna (+ coluna i)))))
+			(setf max (max max (tabuleiro-altura-coluna tab (+ coluna i)))))
 
 		(dotimes (i width) ; calcula shift
-			(setf vazio-tab (- max (tabuleiro-altura-coluna (+ coluna i))))
+			(setf vazio-tab (- max (tabuleiro-altura-coluna tab (+ coluna i))))
 			(setf vazio-peca (calcula-espaco-base-peca-coluna peca i))
 			(setf shift (min shift (+ vazio-tab vazio-peca))))
 
@@ -267,7 +255,7 @@
 		(coloca-peca-no-tabuleiro! (estado-tabuleiro estado) accao)
 
 		; verifica topo preenchido
-		(unless	(tabuleiro-topo-preenchido (estado-tabuleiro estado))
+		(unless	(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
 			; remove linhas e calcula pontos
 			(incf	(estado-pontos novo-estado)
 					(calcula-pontos (tabuleiro-remove-linhas-preenchidas (estado-tabuleiro novo-estado)))))
@@ -276,13 +264,13 @@
 
 ;; qualidade : estado -> inteiro
 (defun qualidade (estado)
-	(- 0 (estado-pontos))) ; returns CUSTO do estado. should be negative
+	(- 0 (estado-pontos estado))) ; returns CUSTO do estado. should be negative
 
 ;; custo-oportunidade : estado -> inteiro
 (defun custo-oportunidade (estado)
 	(let ((max-pontos 0) (pecas-colocadas (estado-pecas-colocadas estado)))
 		(dotimes (i (length pecas-colocadas))
-			(let ((peca (nth i pecas-colocas)))
+			(let ((peca (nth i pecas-colocadas)))
 				(incf max-pontos (calcula-pontos (array-dimension peca 0)))))
 		(- max-pontos (estado-pontos estado))))
 
@@ -305,3 +293,17 @@
 (defconstant peca-l (list peca-l0 peca-l1 peca-l2 peca-l3))
 (defconstant peca-j (list peca-j0 peca-j1 peca-j2 peca-j3))
 (defconstant peca-t (list peca-t0 peca-t1 peca-t2 peca-t3))
+
+
+
+;; AUX peca-configuracoes : peca -> lista de pecas
+(defun peca-configuracoes (p)
+	(cond
+		((eq p 'o) peca-o)
+		((eq p 'i) peca-i)
+		((eq p 's) peca-s)
+		((eq p 'z) peca-z)
+		((eq p 'l) peca-l)
+		((eq p 'j) peca-j)
+		((eq p 't) peca-t)
+		(t nil)))
