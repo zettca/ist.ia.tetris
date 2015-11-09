@@ -277,7 +277,7 @@
 	(let ((max-pontos 0) (pecas-colocadas (estado-pecas-colocadas estado)))
 		(dotimes (i (length pecas-colocadas))
 			(let ((peca (nth i pecas-colocadas)))
-				(incf max-pontos (calcula-pontos (array-dimension peca 0)))))
+				(incf max-pontos (calcula-pontos (peca-altura peca)))))
 		(- max-pontos (estado-pontos estado))))
 
 
@@ -313,3 +313,15 @@
 		((eq p 'j) peca-j)
 		((eq p 't) peca-t)
 		(t nil)))
+
+;; AUX peca-altura : peca -> inteiro
+(defun peca-altura (p)
+	(cond
+		((eq p 'o) 2)
+		((eq p 'i) 4)
+		((eq p 's) 2)
+		((eq p 'z) 2)
+		((eq p 'l) 3)
+		((eq p 'j) 3)
+		((eq p 't) 2)
+		(t 0)))
