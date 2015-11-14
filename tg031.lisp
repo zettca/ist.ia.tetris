@@ -1,6 +1,6 @@
-;;;; Projeto Inteligencia Artificial
+;;;; Projeto de Inteligencia Artificial
 ;;;; Semestre 1 | 2015-2016
-;;;; Grupo TG031
+;;;; Grupo tg031
 ;;;;
 ;;;; 77944 Luis Silva
 ;;;; 78013 Bruno Henriques
