@@ -35,7 +35,7 @@
 (defun calcula-espaco-base-peca-coluna (peca coluna)
 	(dotimes (l (array-dimension peca 0)) ; percorre as linhas
 		(when (aref peca l coluna)		  ; quando linha estiver preenchida
-			(return-from calcula-espaco-base-peca-coluna (+ 1 l))))
+			(return-from calcula-espaco-base-peca-coluna l)))
 	0)
 
 ;; AUX tabuleiro-num-buracos : tabuleiro -> inteiro
@@ -66,20 +66,27 @@
 
 ;; AUX calcula-linha : tabuleiro x accao -> {}
 (defun calcula-linha (tab accao)
-	(let ((max 0) (shift 0) (vazio-tab 0) (vazio-peca 0)
+	(let ((linha 0) (shift 18) (vazio-tab 0) (vazio-peca 0)
 		(peca (accao-peca accao))
 		(width (peca-largura (accao-peca accao)))
 		(coluna (accao-coluna accao)))
 
-		(dotimes (i width) ; calcula max
-			(setf max (max max (tabuleiro-altura-coluna tab (+ coluna i)))))
+		(dotimes (i width) ; calcula linha a colocar (roughly)
+			(setf linha (max linha (tabuleiro-altura-coluna tab (+ coluna i)))))
 
-		(dotimes (i width) ; calcula shift
-			(setf vazio-tab (- max (tabuleiro-altura-coluna tab (+ coluna i))))
+		(dotimes (i width) ; calcula shift adicional
+			(setf vazio-tab (- linha (tabuleiro-altura-coluna tab (+ coluna i))))
 			(setf vazio-peca (calcula-espaco-base-peca-coluna peca i))
-			(setf shift (min shift (+ vazio-tab vazio-peca))))
+			(setf shift (min shift (+ vazio-tab vazio-peca)))
 
-		(- max shift)))	; linha = max - shift
+			;(format *error-output* "vazio-tab: ~D ~%" vazio-tab)
+			;(format *error-output* "vazio-peca: ~D ~%" vazio-peca)
+			;(format *error-output* "shift: ~D ~% ~%" shift)
+			)
+
+		;(format *error-output* "final-shift: ~D ~%" shift)
+
+		(- linha shift)))	; linha = linha - shift
 
 
 ;; AUX coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}

@@ -63,6 +63,7 @@ function test(){
 		# Run the beast
 		clisp -repl "tg031.lisp" < $IN 1> $OUT_RESULT
 
+
 		colordiff $OUT_FILTERED $OUT_RESULT
 		if [ $? -eq 0 ]; then
 			echo -ne $green_text
@@ -74,7 +75,11 @@ function test(){
 			echo -ne "-- fuck --"
 			echo -e $reset_text
 			FAIL=$((FAIL+1))
-			exit
+
+
+			# word diff
+			wdiff $OUT_FILTERED $OUT_RESULT | colordiff
+
 		fi
 
 	else
