@@ -9,6 +9,10 @@
 
 ;;; Funcoes auxiliares
 
+;; AUX diff : inteiro x inteiro -> inteiro
+(defun diff (n1 n2)
+	(abs (- n1 n2)))
+
 ;; AUX peca-largura : peca -> inteiro
 (defun peca-largura (p)
 	(array-dimension p 1))
@@ -21,6 +25,73 @@
 				(when	(> el max)
 						(setf max el))))
 		max))
+
+;; AUX calcula-pontos : inteiro -> inteiro
+(defun calcula-pontos (linhas-removidas-count)
+	(nth linhas-removidas-count '(0 100 300 500 800)))
+
+;; numero de posicoes vazias na base da peca, numa coluna
+;; AUX calcula-espaco-base-peca-coluna : peca x inteiro -> inteiro
+(defun calcula-espaco-base-peca-coluna (peca coluna)
+	(dotimes (l (array-dimension peca 0)) ; percorre as linhas
+		(when (aref peca l coluna)		  ; quando linha estiver preenchida
+			(return-from calcula-espaco-base-peca-coluna (+ 1 l))))
+	0)
+
+;; AUX tabuleiro-num-buracos : tabuleiro -> inteiro
+(defun tabuleiro-num-buracos (tab)
+	(let ((num 0))
+		(dotimes (i 17)
+		(dotimes (j 10)
+			(when (and (not (tabuleiro-preenchido-p tab i j)) (tabuleiro-preenchido-p tab (+ i 1) j))
+				(setf num (+ num 1)))))
+	num))
+
+;; AUX tabuleiro-altura-maxima : tabuleiro -> inteiro
+(defun tabuleiro-altura-maxima (tab)
+	(let ((max 0))
+		(dotimes (j 10)
+			(setf max (max max (tabuleiro-altura-coluna tab j))))
+	max))
+
+;; AUX tabuleiro-num-cells-preenchidas : tabuleiro -> inteiro
+(defun tabuleiro-num-cells-preenchidas (tab)
+	(let ((num 0))
+		(dotimes (i 18)
+		(dotimes (j 10)
+			(when (tabuleiro-preenchido-p tab i j)
+				(setf num (+ num 1)))))
+	num))
+
+
+;; AUX calcula-linha : tabuleiro x accao -> {}
+(defun calcula-linha (tab accao)
+	(let ((max 0) (shift 0) (vazio-tab 0) (vazio-peca 0)
+		(peca (accao-peca accao))
+		(width (peca-largura (accao-peca accao)))
+		(coluna (accao-coluna accao)))
+
+		(dotimes (i width) ; calcula max
+			(setf max (max max (tabuleiro-altura-coluna tab (+ coluna i)))))
+
+		(dotimes (i width) ; calcula shift
+			(setf vazio-tab (- max (tabuleiro-altura-coluna tab (+ coluna i))))
+			(setf vazio-peca (calcula-espaco-base-peca-coluna peca i))
+			(setf shift (min shift (+ vazio-tab vazio-peca))))
+
+		(- max shift)))	; linha = max - shift
+
+
+;; AUX coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}
+(defun coloca-peca-no-tabuleiro! (tab accao)
+	(let ((peca (accao-peca accao))
+		(l (calcula-linha tab accao))
+		(c (accao-coluna accao)))
+
+		(dotimes (i (array-dimension peca 0)) ; lines
+		(dotimes (j (array-dimension peca 1)) ; columns
+			(when (aref peca i j)
+				(tabuleiro-preenche! tab (+ l i) (+ c j)))))))
 
 
 
@@ -183,8 +254,11 @@
 	(and (not (estado-pecas-por-colocar estado)) ; se lista vazia
 		 (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)))))
 
+
 ;; accoes : estado -> lista
 (defun accoes (estado)
+	(when	(estado-final-p estado)
+			(return-from accoes (list)))
 	(let ((peca (first (estado-pecas-por-colocar estado))))
 		(accoes-aux-peca-configuracoes (peca-configuracoes peca))))
 
@@ -205,46 +279,6 @@
 				(push (cria-accao i config) lista-accoes))
 	lista-accoes))
 
-;; AUX calcula-pontos : inteiro -> inteiro
-(defun calcula-pontos (linhas-removidas-count)
-	(nth linhas-removidas-count '(0 100 300 500 800)))
-
-;; AUX calcula-espaco-base-peca-coluna : peca x inteiro -> inteiro
-;; numero de posicoes vazias na base da peca, numa coluna
-(defun calcula-espaco-base-peca-coluna (peca coluna)
-	(dotimes (l (array-dimension peca 0)) ; percorre as linhas
-		(when (aref peca l coluna)		  ; quando linha estiver preenchida
-			(return-from calcula-espaco-base-peca-coluna (+ 1 l))))
-	0)
-
-;; calcula-linha : tabuleiro x accao -> {}
-(defun calcula-linha (tab accao)
-	(let ((max 0) (shift 0) (vazio-tab 0) (vazio-peca 0)
-		(peca (accao-peca accao))
-		(width (peca-largura (accao-peca accao)))
-		(coluna (accao-coluna accao)))
-
-		(dotimes (i width) ; calcula max
-			(setf max (max max (tabuleiro-altura-coluna tab (+ coluna i)))))
-
-		(dotimes (i width) ; calcula shift
-			(setf vazio-tab (- max (tabuleiro-altura-coluna tab (+ coluna i))))
-			(setf vazio-peca (calcula-espaco-base-peca-coluna peca i))
-			(setf shift (min shift (+ vazio-tab vazio-peca))))
-
-		(- max shift)))	; linha = max - shift
-
-
-;; AUX coloca-peca-no-tabuleiro! : tabuleiro x accao -> {}
-(defun coloca-peca-no-tabuleiro! (tab accao)
-	(let ((peca (accao-peca accao))
-		(l (calcula-linha tab accao))
-		(c (accao-coluna accao)))
-
-		(dotimes (i (array-dimension peca 0)) ; lines
-		(dotimes (j (array-dimension peca 1)) ; columns
-			(when (aref peca i j)
-				(tabuleiro-preenche! tab (+ l i) (+ c j)))))))
 
 ;; resultado : estado x accao -> estado
 (defun resultado (estado accao)
@@ -279,6 +313,99 @@
 			(let ((peca (nth i pecas-colocadas)))
 				(incf max-pontos (calcula-pontos (peca-altura peca)))))
 		(- max-pontos (estado-pontos estado))))
+
+
+
+;; Depth-First Search!
+;; procura-pp : problema -> lista-accoes
+(defun procura-pp (problema)
+	(let (
+			(p-accoes (problema-accoes problema))
+			(p-resultado (problema-resultado problema))
+			(p-solucao (problema-solucao problema))
+			(my-estado-inicial (problema-estado-inicial problema))
+		)
+		(defun dfs (estado)			; devolve lista de accoes ou t
+			(let ((aacs (funcall p-accoes estado)))
+				(setf aacs (reverse aacs))
+				;(format *error-output* "DFS ~D filhos; ~D colocadas; falta ~D ~%"
+				;	(length aacs)
+				;	(length (estado-pecas-colocadas estado))
+				;	(length (estado-pecas-por-colocar estado))
+				;)
+				(sleep 0.25)
+				(loop
+					for a in aacs do
+					(progn
+						(let ((next-estado (funcall p-resultado estado a)))
+							(when (funcall p-solucao next-estado)
+								(return-from dfs (list a)))
+							;(format *error-output* "DFS not; falta ~D ~%" (length (estado-pecas-por-colocar next-estado)))
+
+							(unless (estado-final-p next-estado)
+								(let ((res (dfs next-estado)))
+									(unless (eq t res)
+										(return-from dfs (cons a res))))))))
+				t))
+
+		;(format *error-output* "procura-pp ~D pecas por colocar ~%" (length (estado-pecas-por-colocar my-estado-inicial)))
+		;(trace dfs)
+		(dfs my-estado-inicial)))
+
+;(trace procura-pp)
+
+
+;; h0 : playfield number of holes
+;; h0 : estado -> inteiro
+(defun th0 (estado)
+	(tabuleiro-num-buracos (estado-tabuleiro estado)))
+
+;; h1 : playfield max height
+;; h1 : estado -> inteiro
+(defun th1 (estado)
+	(tabuleiro-altura-maxima (estado-tabuleiro estado)))
+
+;; h2 : playfield cell number
+;; h2 : estado -> inteiro
+(defun th2 (estado)
+	(tabuleiro-num-cells-preenchidas (estado-tabuleiro estado)))
+
+;; h3 : playfield highest slope
+;; h3 : estado -> inteiro
+(defun th3 (estado)
+	10)
+
+;; h3 : playfield slope average (roughness)
+;; h4 : estado -> inteiro
+(defun th4 (estado)
+	10)
+
+;; h5 : playfield (cell number * cell altitude)
+;; h5 : estado -> inteiro
+(defun th5 (estado)
+	(let ((total 0))
+		(dotimes (i 18)
+		(dotimes (j 10)
+			(when (tabuleiro-preenchido-p (estado-tabuleiro estado) i j)
+				(setf total (+ total (+ i 1))))))
+	total))
+
+
+;; heuristica : estado -> inteiro
+(defun heuristica-tetris (estado)
+	(+ (* 20 (th0 estado)) (th1 estado) (th2 estado) (th3 estado) (th4 estado) (th5 estado)))
+
+
+;; procura-A* : problema x heuristica -> lista-accoes
+(defun procura-a* (problema heuristica)
+	nil)
+
+
+;; Procura e Heuristica a nossa escolha
+;; procura-pp : array x lista-pecas -> lista-accoes
+(defun procura-best (array lista-pecas)
+	nil)
+
 
 
 
