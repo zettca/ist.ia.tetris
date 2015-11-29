@@ -38,13 +38,19 @@
 			(return-from calcula-espaco-base-peca-coluna l)))
 	0)
 
+;; AUX tabuleiro-slope-coluna : tabuleiro x inteiro -> inteiro
+(defun tabuleiro-slope-coluna (tab c)
+	(let ((num 0))
+		(floor (diff (tabuleiro-altura-coluna tab c) (tabuleiro-altura-coluna tab (+ c 1))))
+	num))
+
 ;; AUX tabuleiro-num-buracos : tabuleiro -> inteiro
 (defun tabuleiro-num-buracos (tab)
 	(let ((num 0))
 		(dotimes (i 17)
 		(dotimes (j 10)
 			(when (and (not (tabuleiro-preenchido-p tab i j)) (tabuleiro-preenchido-p tab (+ i 1) j))
-				(setf num (+ num 1)))))
+				(incf num 1))))
 	num))
 
 ;; AUX tabuleiro-altura-maxima : tabuleiro -> inteiro
@@ -60,7 +66,7 @@
 		(dotimes (i 18)
 		(dotimes (j 10)
 			(when (tabuleiro-preenchido-p tab i j)
-				(setf num (+ num 1)))))
+				(incf num 1))))
 	num))
 
 
@@ -99,6 +105,20 @@
 		(dotimes (j (array-dimension peca 1)) ; columns
 			(when (aref peca i j)
 				(tabuleiro-preenche! tab (+ l i) (+ c j)))))))
+
+
+;; AUX tabuleiro-remove-linhas-preenchidas! : tabuleiro -> inteiro (nr)
+(defun tabuleiro-remove-linhas-preenchidas! (tab)
+	(let ((count 0)(l 0))
+		(loop
+			(unless (< l 18)
+				(return))
+			(if	(tabuleiro-linha-completa-p tab l)
+				(progn	(tabuleiro-remove-linha! tab l)
+						(incf count))
+				(incf l)))
+		count))
+
 
 
 
@@ -176,18 +196,6 @@
 			(return-from tabuleiro-topo-preenchido-p T)))
 	nil)
 
-;; AUX tabuleiro-remove-linhas-preenchidas! : tabuleiro -> inteiro (nr)
-(defun tabuleiro-remove-linhas-preenchidas! (tab)
-	(let ((count 0)(l 0))
-		(loop
-			(unless (< l 18)
-				(return))
-			(if	(tabuleiro-linha-completa-p tab l)
-				(progn	(tabuleiro-remove-linha! tab l)
-						(incf count))
-				(incf l)))
-		count))
-
 ;; tabuleiros-iguais-p : tabuleiro x tabuleiro -> logico
 (defun tabuleiros-iguais-p (tab1 tab2)
 	(dotimes (i 18)
@@ -241,14 +249,13 @@
 	(or (not (estado-pecas-por-colocar estado)) ; if empty
 		(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
 
-
 ;;; 2.1.4	Tipo Problema
 
 (defstruct problema
 	estado-inicial			; estado
-	(solucao 'solucao)		; funcao : estado -> logico
-	(accoes 'accoes)		; funcao : estado -> lista de accoes
-	(resultado 'resultado)	; funcao : estado x accao -> estado
+	solucao					; funcao : estado -> logico
+	accoes					; funcao : estado -> lista de accoes
+	resultado				; funcao : estado x accao -> estado
 	custo-caminho)			; funcao : estado -> inteiro
 
 ;;; 2.2 Funcoes
@@ -258,7 +265,7 @@
 
 ;; solucao : estado -> logico
 (defun solucao (estado)
-	(and (not (estado-pecas-por-colocar estado)) ; se lista vazia
+	(and (not (estado-pecas-por-colocar estado))
 		 (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)))))
 
 
@@ -317,10 +324,9 @@
 (defun custo-oportunidade (estado)
 	(let ((max-pontos 0) (pecas-colocadas (estado-pecas-colocadas estado)))
 		(dotimes (i (length pecas-colocadas))
-			(let ((peca (nth i pecas-colocadas)))
+			(let ((peca (nth i pecas-colocadas))) ; para cada peca ja colocada
 				(incf max-pontos (calcula-pontos (peca-altura peca)))))
 		(- max-pontos (estado-pontos estado))))
-
 
 
 ;; Depth-First Search!
@@ -340,26 +346,106 @@
 				;	(length (estado-pecas-colocadas estado))
 				;	(length (estado-pecas-por-colocar estado))
 				;)
-				(sleep 0.25)
-				(loop
-					for a in aacs do
+				;(sleep 0.25)
+				(loop for a in aacs do
 					(progn
 						(let ((next-estado (funcall p-resultado estado a)))
 							(when (funcall p-solucao next-estado)
 								(return-from dfs (list a)))
 							;(format *error-output* "DFS not; falta ~D ~%" (length (estado-pecas-por-colocar next-estado)))
 
-							(unless (estado-final-p next-estado)
-								(let ((res (dfs next-estado)))
-									(unless (eq t res)
-										(return-from dfs (cons a res))))))))
-				t))
+							(let ((res (dfs next-estado)))
+								; se encontrar uma solucao devolve-a
+								(unless (eq nil res)
+									(return-from dfs (cons a res)))))))
+				nil))
 
 		;(format *error-output* "procura-pp ~D pecas por colocar ~%" (length (estado-pecas-por-colocar my-estado-inicial)))
 		;(trace dfs)
 		(dfs my-estado-inicial)))
 
 ;(trace procura-pp)
+
+
+
+
+
+
+
+
+;;;; Estrutura auximiar para procura-a*
+(defstruct node
+	accoes			; accoes desde o inicio ate este node
+	estado			; estado do node
+	custo)			; custo ate' node + heuristica
+
+
+
+;; procura-A* : problema x heuristica -> lista-accoes
+(defun procura-a* (problema heuristica)
+	(let (
+			(p-accoes (problema-accoes problema))
+			(p-resultado (problema-resultado problema))
+			(p-solucao (problema-solucao problema))
+			(p-custo (problema-custo-caminho problema))
+			(my-estado-inicial (problema-estado-inicial problema))
+			(fronteira (list))
+		)
+
+		(defun procura-a-aux (accoes estado)
+			(when (funcall p-solucao estado)
+				(return-from procura-a-aux accoes))
+
+			; gera os estados filho e coloca-os na fronteira
+			(let ((e-actions (funcall p-accoes estado)))
+				;(format *error-output* "num filhos: ~D ~%" (length e-actions))
+				(loop for a in e-actions do
+					(push
+						(make-node
+							:accoes	(cons a accoes)
+							:estado	(funcall p-resultado estado a)
+							:custo	(+ (funcall heuristica estado) (funcall p-custo estado)))
+						fronteira)
+					;(format *error-output* "pushed. (custo ~D) ~%" (node-custo (first fronteira)))
+					))
+
+			; procura solucao nos filhos recursivamente
+			(let ((res nil))
+				(loop while (not res) do
+					(let ((go-to (first fronteira)))
+						; find the best node
+						(loop for f in fronteira do
+							(when (< (node-custo f) (node-custo go-to))
+								(setf go-to f))) ; go-to = best node
+						(unless go-to (return-from procura-a-aux nil))
+
+						; remove go-to from fronteira
+						(defun eq-go-to (el) (equal el go-to))
+						(setf fronteira (remove-if #'eq-go-to fronteira))
+
+						(setf res
+							(procura-a-aux	(node-accoes go-to)
+											(node-estado go-to)))))
+				res))
+		(reverse (procura-a-aux (list) my-estado-inicial))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ;; h0 : playfield number of holes
@@ -380,12 +466,18 @@
 ;; h3 : playfield highest slope
 ;; h3 : estado -> inteiro
 (defun th3 (estado)
-	10)
+	(let ((highest 0) (max-coluna 9) (tab (estado-tabuleiro estado)))
+		(dotimes (j max-coluna)
+			(setf highest (max highest (tabuleiro-slope-coluna tab j))))
+	highest))
 
-;; h3 : playfield slope average (roughness)
+;; h4 : playfield slope average (roughness)
 ;; h4 : estado -> inteiro
 (defun th4 (estado)
-	10)
+	(let ((sum 0) (max-coluna 9) (tab (estado-tabuleiro estado)))
+		(dotimes (j max-coluna)
+			(incf sum (tabuleiro-slope-coluna tab j)))
+	(floor (/ sum max-coluna))))
 
 ;; h5 : playfield (cell number * cell altitude)
 ;; h5 : estado -> inteiro
@@ -394,25 +486,22 @@
 		(dotimes (i 18)
 		(dotimes (j 10)
 			(when (tabuleiro-preenchido-p (estado-tabuleiro estado) i j)
-				(setf total (+ total (+ i 1))))))
+				(incf total i))))
 	total))
 
 
 ;; heuristica : estado -> inteiro
-(defun heuristica-tetris (estado)
+(defun heuristica (estado)
 	(+ (* 20 (th0 estado)) (th1 estado) (th2 estado) (th3 estado) (th4 estado) (th5 estado)))
 
 
-;; procura-A* : problema x heuristica -> lista-accoes
-(defun procura-a* (problema heuristica)
-	nil)
 
 
 ;; Procura e Heuristica a nossa escolha
 ;; procura-pp : array x lista-pecas -> lista-accoes
 (defun procura-best (array lista-pecas)
-	nil)
-
+	(let ()
+		(and (null array) (null lista-pecas))))
 
 
 

@@ -49,6 +49,8 @@ function test(){
 		echo -e "================ TEST #$TOTAL ================"
 		echo $TEST
 
+		head -n 2 $IN
+
 		# Filter commends out of expected output
 		if [ -e  $OUT_FILTERED ]; then
 			echo OK: Filtered exists.
@@ -72,13 +74,13 @@ function test(){
 			PASS=$((PASS+1))
 		else
 			echo -ne $red_text
-			echo -ne "-- fuck --"
+			echo -ne "==== fuck ===="
 			echo -e $reset_text
 			FAIL=$((FAIL+1))
 
 
 			# word diff
-			wdiff $OUT_FILTERED $OUT_RESULT | colordiff
+			# wdiff $OUT_FILTERED $OUT_RESULT | colordiff
 
 		fi
 
