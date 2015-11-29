@@ -333,13 +333,13 @@
 ;; procura-pp : problema -> lista-accoes
 (defun procura-pp (problema)
 	(let (
-			(p-accoes (problema-accoes problema))
-			(p-resultado (problema-resultado problema))
-			(p-solucao (problema-solucao problema))
+			(f-accoes (problema-accoes problema))
+			(f-resultado (problema-resultado problema))
+			(f-solucao (problema-solucao problema))
 			(my-estado-inicial (problema-estado-inicial problema))
 		)
 		(defun dfs (estado)			; devolve lista de accoes ou t
-			(let ((aacs (funcall p-accoes estado)))
+			(let ((aacs (funcall f-accoes estado)))
 				(setf aacs (reverse aacs))
 				;(format *error-output* "DFS ~D filhos; ~D colocadas; falta ~D ~%"
 				;	(length aacs)
@@ -349,8 +349,8 @@
 				;(sleep 0.25)
 				(loop for a in aacs do
 					(progn
-						(let ((next-estado (funcall p-resultado estado a)))
-							(when (funcall p-solucao next-estado)
+						(let ((next-estado (funcall f-resultado estado a)))
+							(when (funcall f-solucao next-estado)
 								(return-from dfs (list a)))
 							;(format *error-output* "DFS not; falta ~D ~%" (length (estado-pecas-por-colocar next-estado)))
 
@@ -384,29 +384,31 @@
 ;; procura-A* : problema x heuristica -> lista-accoes
 (defun procura-a* (problema heuristica)
 	(let (
-			(p-accoes (problema-accoes problema))
-			(p-resultado (problema-resultado problema))
-			(p-solucao (problema-solucao problema))
-			(p-custo (problema-custo-caminho problema))
+			(f-accoes (problema-accoes problema))
+			(f-resultado (problema-resultado problema))
+			(f-solucao (problema-solucao problema))
+			(f-custo (problema-custo-caminho problema))
 			(my-estado-inicial (problema-estado-inicial problema))
 			(fronteira (list))
 		)
 
 		(defun procura-a-aux (accoes estado)
-			(when (funcall p-solucao estado)
+			(when (funcall f-solucao estado)
 				(return-from procura-a-aux accoes))
 
 			; gera os estados filho e coloca-os na fronteira
-			(let ((e-actions (funcall p-accoes estado)))
+			(let ((e-actions (funcall f-accoes estado)) (n-estado))
 				;(format *error-output* "num filhos: ~D ~%" (length e-actions))
 				(loop for a in e-actions do
+					(setf n-estado (funcall f-resultado estado a))
 					(push
 						(make-node
 							:accoes	(cons a accoes)
-							:estado	(funcall p-resultado estado a)
-							:custo	(+ (funcall heuristica estado) (funcall p-custo estado)))
+							:estado	n-estado
+							:custo	(+ (funcall heuristica estado) (funcall f-custo n-estado)))
 						fronteira)
-					;(format *error-output* "pushed. (custo ~D) ~%" (node-custo (first fronteira)))
+					;(princ a)
+					;(format *error-output* " pushed custo: ~D) ~%" (node-custo (first fronteira)))
 					))
 
 			; procura solucao nos filhos recursivamente
@@ -414,13 +416,28 @@
 				(loop while (not res) do
 					(let ((go-to (first fronteira)))
 						; find the best node
-						(loop for f in fronteira do
-							(when (< (node-custo f) (node-custo go-to))
-								(setf go-to f))) ; go-to = best node
-						(unless go-to (return-from procura-a-aux nil))
+
+						;(format *error-output* "first guess: ~D~%" (node-custo go-to))
+
+
+						(loop for n in fronteira do
+							(when (< (node-custo n) (node-custo go-to))
+								;(princ (first (node-accoes n)))
+								;(format *error-output* " is better node with ~D~%" (node-custo n))
+								(setf go-to n)))		; go-to = best node
+
+						;(format *error-output* "len: ~D~%" (length fronteira))
+						;(format *error-output* "final guess: ~D~%" (node-custo go-to))
+
+						; sair se a fronteira estiver vazia
+						(unless go-to
+							(return-from procura-a-aux nil))
+
+						;(read-char)
 
 						; remove go-to from fronteira
-						(defun eq-go-to (el) (equal el go-to))
+						(defun eq-go-to (el)
+							(equal el go-to))
 						(setf fronteira (remove-if #'eq-go-to fronteira))
 
 						(setf res
@@ -500,8 +517,7 @@
 ;; Procura e Heuristica a nossa escolha
 ;; procura-pp : array x lista-pecas -> lista-accoes
 (defun procura-best (array lista-pecas)
-	(let ()
-		(and (null array) (null lista-pecas))))
+	(and (null array) (null lista-pecas)))
 
 
 
