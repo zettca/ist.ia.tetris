@@ -47,10 +47,11 @@
 ;; AUX tabuleiro-num-buracos : tabuleiro -> inteiro
 (defun tabuleiro-num-buracos (tab)
 	(let ((num 0))
-		(dotimes (i 17)
 		(dotimes (j 10)
-			(when (and (not (tabuleiro-preenchido-p tab i j)) (tabuleiro-preenchido-p tab (+ i 1) j))
-				(incf num 1))))
+			(let ((c-max (tabuleiro-altura-coluna tab j)))
+				(dotimes (i c-max)
+					(when (not (tabuleiro-preenchido-p tab i j))
+						(incf num 1)))))
 	num))
 
 ;; AUX tabuleiro-altura-maxima : tabuleiro -> inteiro
@@ -397,18 +398,18 @@
 				(return-from procura-a-aux accoes))
 
 			; gera os estados filho e coloca-os na fronteira
-			(let ((e-actions (funcall f-accoes estado)) (n-estado))
-				;(format *error-output* "num filhos: ~D ~%" (length e-actions))
+			(let ((e-actions (funcall f-accoes estado)) (novo-estado))
+	;			(format *error-output* "num filhos: ~D ~%" (length e-actions))
 				(loop for a in e-actions do
-					(setf n-estado (funcall f-resultado estado a))
+					(setf novo-estado (funcall f-resultado estado a))
 					(push
 						(make-node
 							:accoes	(cons a accoes)
-							:estado	n-estado
-							:custo	(+ (funcall heuristica estado) (funcall f-custo n-estado)))
+							:estado	novo-estado
+							:custo	(+ (funcall heuristica novo-estado) (funcall f-custo novo-estado)))
 						fronteira)
-					;(princ a)
-					;(format *error-output* " pushed custo: ~D) ~%" (node-custo (first fronteira)))
+	;				(princ a)
+	;				(format *error-output* " pushed custo: ~D) ~%" (node-custo (first fronteira)))
 					))
 
 			; procura solucao nos filhos recursivamente
@@ -417,23 +418,24 @@
 					(let ((go-to (first fronteira)))
 						; find the best node
 
-						;(format *error-output* "first guess: ~D~%" (node-custo go-to))
+	;					(format *error-output* "first guess: ~D~%" (node-custo go-to))
 
 
 						(loop for n in fronteira do
 							(when (< (node-custo n) (node-custo go-to))
-								;(princ (first (node-accoes n)))
-								;(format *error-output* " is better node with ~D~%" (node-custo n))
+	;							(princ 'testing)
+	;							(princ (first (node-accoes n)))
+	;							(format *error-output* " is better node with ~D~%" (node-custo n))
 								(setf go-to n)))		; go-to = best node
 
-						;(format *error-output* "len: ~D~%" (length fronteira))
-						;(format *error-output* "final guess: ~D~%" (node-custo go-to))
+	;					(format *error-output* "len: ~D~%" (length fronteira))
+	;					(format *error-output* "final guess: ~D~%" (node-custo go-to))
+	;					(read-char)
 
 						; sair se a fronteira estiver vazia
 						(unless go-to
 							(return-from procura-a-aux nil))
 
-						;(read-char)
 
 						; remove go-to from fronteira
 						(defun eq-go-to (el)
@@ -506,18 +508,42 @@
 				(incf total i))))
 	total))
 
+(defun thq (estado)
+	(qualidade estado))
 
 ;; heuristica : estado -> inteiro
 (defun heuristica (estado)
-	(+ (* 20 (th0 estado)) (th1 estado) (th2 estado) (th3 estado) (th4 estado) (th5 estado)))
-
-
+	(+ 	(* 2 (thq estado)) ; qualidade-pontos
+		(* 20 (th0 estado))
+		(* 1 (th1 estado))
+		(* 1 (th2 estado))
+		(* 1 (th3 estado))
+		(* 1 (th4 estado))
+		(* 1 (th5 estado))))
 
 
 ;; Procura e Heuristica a nossa escolha
 ;; procura-pp : array x lista-pecas -> lista-accoes
 (defun procura-best (array lista-pecas)
-	(and (null array) (null lista-pecas)))
+	(let ((prob (make-problema :estado-inicial (make-estado :pontos 0 :tabuleiro (array->tabuleiro array) :pecas-colocadas () :pecas-por-colocar lista-pecas) :solucao #'solucao :accoes #'accoes :resultado #'resultado :custo-caminho #'custo-oportunidade)))
+	(procura-a* prob #'heuristica)))
+
+(defun my-procura-best (array lista-pecas)
+	(let ((estado (make-estado :pontos 0 :tabuleiro (array->tabuleiro array) :pecas-colocadas () :pecas-por-colocar lista-pecas)) (lista-accoes (list)))
+		(loop while (not (null (estado-pecas-por-colocar estado))) do
+			(let ((best-accao (get-best-accao estado)))
+				(setf estado (resultado estado (get-best-accao estado))) ; proximo estado
+				(push best-accao lista-accoes)))
+	(reverse lista-accoes)))
+
+(defun get-best-accao (estado)
+	(defun get-f (estado) (+ (heuristica estado) (custo-oportunidade estado)))
+	(let ((actions (accoes estado)) (best-action (first (accoes estado))))
+		(loop for act in actions do ; cada accao
+			(when (< (get-f (resultado estado act)) (get-f (resultado estado best-action))) ; minimizar custo !
+				(setf best-action act)))
+	best-action))
+
 
 
 

@@ -63,7 +63,7 @@ function test(){
 
 
 		# Run the beast
-		clisp -repl "tg031.lisp" < $IN 1> $OUT_RESULT
+		time clisp -repl "tg031.fas" < $IN 1> $OUT_RESULT
 
 
 		colordiff $OUT_FILTERED $OUT_RESULT
@@ -89,6 +89,10 @@ function test(){
 	fi
 
 }
+
+
+# Compile it
+clisp -c tg031.lisp
 
 
 if [ -n "$2" ]; then
