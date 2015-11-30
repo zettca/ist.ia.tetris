@@ -42,7 +42,7 @@
 (defun tabuleiro-slope-coluna (tab c)
 	(let ((num 0))
 		(floor (diff (tabuleiro-altura-coluna tab c) (tabuleiro-altura-coluna tab (+ c 1))))
-	num))
+		num))
 
 ;; AUX tabuleiro-num-buracos : tabuleiro -> inteiro
 (defun tabuleiro-num-buracos (tab)
@@ -52,14 +52,14 @@
 				(dotimes (i c-max)
 					(when (not (tabuleiro-preenchido-p tab i j))
 						(incf num 1)))))
-	num))
+		num))
 
 ;; AUX tabuleiro-altura-maxima : tabuleiro -> inteiro
 (defun tabuleiro-altura-maxima (tab)
 	(let ((max 0))
 		(dotimes (j 10)
 			(setf max (max max (tabuleiro-altura-coluna tab j))))
-	max))
+		max))
 
 ;; AUX tabuleiro-num-cells-preenchidas : tabuleiro -> inteiro
 (defun tabuleiro-num-cells-preenchidas (tab)
@@ -68,7 +68,7 @@
 		(dotimes (j 10)
 			(when (tabuleiro-preenchido-p tab i j)
 				(incf num 1))))
-	num))
+		num))
 
 
 ;; AUX calcula-linha : tabuleiro x accao -> {}
@@ -139,6 +139,9 @@
 ;; accao-peca : accao -> array
 (defun accao-peca (accao)
 	(rest accao))
+
+
+
 
 
 ;;; 2.1.2	Tipo Tabuleiro
@@ -214,6 +217,10 @@
 	(copia-tabuleiro array))
 
 
+
+
+
+
 ;;; 2.1.3	Tipo Estado
 
 (defstruct estado
@@ -250,6 +257,10 @@
 	(or (not (estado-pecas-por-colocar estado)) ; if empty
 		(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
 
+
+
+
+
 ;;; 2.1.4	Tipo Problema
 
 (defstruct problema
@@ -284,7 +295,7 @@
 			(setf	lista-accoes
 					(append	(accoes-aux-uma-configuracao (nth i configs))
 							lista-accoes)))
-	(reverse lista-accoes)))
+		(reverse lista-accoes)))
 
 ;; AUX ;; devolve as accoes para uma configuracao
 (defun accoes-aux-uma-configuracao (config)
@@ -292,7 +303,7 @@
 		(lista-accoes (list)))
 			(dotimes (i (- 11 largura)) ; for each horizontal fit
 				(push (cria-accao i config) lista-accoes))
-	lista-accoes))
+		lista-accoes))
 
 
 ;; resultado : estado x accao -> estado
@@ -337,9 +348,8 @@
 			(f-accoes (problema-accoes problema))
 			(f-resultado (problema-resultado problema))
 			(f-solucao (problema-solucao problema))
-			(my-estado-inicial (problema-estado-inicial problema))
-		)
-		(defun dfs (estado)			; devolve lista de accoes ou t
+			(my-estado-inicial (problema-estado-inicial problema)))
+		(defun dfs (estado)		; devolve lista de accoes ou t
 			(let ((aacs (funcall f-accoes estado)))
 				(setf aacs (reverse aacs))
 				;(format *error-output* "DFS ~D filhos; ~D colocadas; falta ~D ~%"
@@ -365,8 +375,6 @@
 		;(trace dfs)
 		(dfs my-estado-inicial)))
 
-;(trace procura-pp)
-
 
 
 
@@ -390,8 +398,7 @@
 			(f-solucao (problema-solucao problema))
 			(f-custo (problema-custo-caminho problema))
 			(my-estado-inicial (problema-estado-inicial problema))
-			(fronteira (list))
-		)
+			(fronteira (list)))
 
 		(defun procura-a-aux (accoes estado)
 			(when (funcall f-solucao estado)
@@ -407,26 +414,20 @@
 							:accoes	(cons a accoes)
 							:estado	novo-estado
 							:custo	(+ (funcall heuristica novo-estado) (funcall f-custo novo-estado)))
-						fronteira)
-	;				(princ a)
-	;				(format *error-output* " pushed custo: ~D) ~%" (node-custo (first fronteira)))
-					))
+						fronteira)))
 
 			; procura solucao nos filhos recursivamente
 			(let ((res nil))
 				(loop while (not res) do
 					(let ((go-to (first fronteira)))
-						; find the best node
-
 	;					(format *error-output* "first guess: ~D~%" (node-custo go-to))
 
-
+						; find the best node
 						(loop for n in fronteira do
 							(when (< (node-custo n) (node-custo go-to))
-	;							(princ 'testing)
 	;							(princ (first (node-accoes n)))
 	;							(format *error-output* " is better node with ~D~%" (node-custo n))
-								(setf go-to n)))		; go-to = best node
+								(setf go-to n)))	; go-to = best node
 
 	;					(format *error-output* "len: ~D~%" (length fronteira))
 	;					(format *error-output* "final guess: ~D~%" (node-custo go-to))
@@ -436,16 +437,14 @@
 						(unless go-to
 							(return-from procura-a-aux nil))
 
-
 						; remove go-to from fronteira
 						(defun eq-go-to (el)
 							(equal el go-to))
 						(setf fronteira (remove-if #'eq-go-to fronteira))
 
 						(setf res
-							(procura-a-aux	(node-accoes go-to)
-											(node-estado go-to)))))
-				res))
+							(procura-a-aux (node-accoes go-to) (node-estado go-to)))))
+			res))
 		(reverse (procura-a-aux (list) my-estado-inicial))))
 
 
@@ -498,7 +497,7 @@
 			(incf sum (tabuleiro-slope-coluna tab j)))
 	(floor (/ sum max-coluna))))
 
-;; h5 : playfield (cell number * cell altitude)
+;; h5 : playfield (cell number * cell height)
 ;; h5 : estado -> inteiro
 (defun th5 (estado)
 	(let ((total 0))
@@ -513,19 +512,33 @@
 
 ;; heuristica : estado -> inteiro
 (defun heuristica (estado)
-	(+ 	(* 2 (thq estado)) ; qualidade-pontos
-		(* 20 (th0 estado))
-		(* 1 (th1 estado))
-		(* 1 (th2 estado))
-		(* 1 (th3 estado))
-		(* 1 (th4 estado))
-		(* 1 (th5 estado))))
+	(+ 	(* 3 (thq estado))		; qualidade-pontos
+		(* 20 (th0 estado))		; number of holes
+		(* 1 (th1 estado))		; max height
+		(* 1 (th2 estado))		; filled cells
+		(* 1 (th3 estado))		; highest slope
+		(* 6 (th4 estado))		; average slope
+		(* 1 (th5 estado))))	; (cell #) * (cell height)
 
+
+;; custo-oportunidade : estado -> inteiro
+(defun custo-oportunidade-alt (estado)
+	(/ (custo-oportunidade estado) 4))
 
 ;; Procura e Heuristica a nossa escolha
 ;; procura-pp : array x lista-pecas -> lista-accoes
 (defun procura-best (array lista-pecas)
-	(let ((prob (make-problema :estado-inicial (make-estado :pontos 0 :tabuleiro (array->tabuleiro array) :pecas-colocadas () :pecas-por-colocar lista-pecas) :solucao #'solucao :accoes #'accoes :resultado #'resultado :custo-caminho #'custo-oportunidade)))
+	(let ((prob (make-problema
+					:estado-inicial
+						(make-estado
+							:pontos 0
+							:tabuleiro (array->tabuleiro array)
+							:pecas-colocadas ()
+							:pecas-por-colocar lista-pecas)
+					:solucao #'solucao
+					:accoes #'accoes
+					:resultado #'resultado
+					:custo-caminho #'custo-oportunidade)))
 	(procura-a* prob #'heuristica)))
 
 (defun my-procura-best (array lista-pecas)
