@@ -61,6 +61,13 @@
 			(setf max (max max (tabuleiro-altura-coluna tab j))))
 		max))
 
+;; AUX tabuleiro-altura-minima : tabuleiro -> inteiro
+(defun tabuleiro-altura-minima (tab)
+	(let ((min 20))
+		(dotimes (j 10)
+			(setf min (min min (tabuleiro-altura-coluna tab j))))
+		min))
+
 ;; AUX tabuleiro-num-cells-preenchidas : tabuleiro -> inteiro
 (defun tabuleiro-num-cells-preenchidas (tab)
 	(let ((num 0))
@@ -462,44 +469,50 @@
 
 
 
+;; h1 : score cost
+;; h1 : estado -> inteiro
+(defun h0 (estado)
+	(qualidade estado))
 
-
-
-
-;; h0 : playfield number of holes
-;; h0 : estado -> inteiro
-(defun th0 (estado)
+;; h1 : playfield number of holes
+;; h1 : estado -> inteiro
+(defun h1 (estado)
 	(tabuleiro-num-buracos (estado-tabuleiro estado)))
 
-;; h1 : playfield max height
-;; h1 : estado -> inteiro
-(defun th1 (estado)
+;; h2 : playfield max height
+;; h2 : estado -> inteiro
+(defun h2 (estado)
 	(tabuleiro-altura-maxima (estado-tabuleiro estado)))
 
-;; h2 : playfield cell number
-;; h2 : estado -> inteiro
-(defun th2 (estado)
+;; h3 : playfield min height
+;; h3 : estado -> inteiro
+(defun h3 (estado)
+	(tabuleiro-altura-minima (estado-tabuleiro estado)))
+
+;; h4 : playfield cell number
+;; h4 : estado -> inteiro
+(defun h4 (estado)
 	(tabuleiro-num-cells-preenchidas (estado-tabuleiro estado)))
 
-;; h3 : playfield highest slope
-;; h3 : estado -> inteiro
-(defun th3 (estado)
+;; h5 : playfield highest slope
+;; h5 : estado -> inteiro
+(defun h5 (estado)
 	(let ((highest 0) (max-coluna 9) (tab (estado-tabuleiro estado)))
 		(dotimes (j max-coluna)
 			(setf highest (max highest (tabuleiro-slope-coluna tab j))))
 	highest))
 
-;; h4 : playfield slope average (roughness)
-;; h4 : estado -> inteiro
-(defun th4 (estado)
+;; h6 : playfield slope average (roughness)
+;; h6 : estado -> inteiro
+(defun h6 (estado)
 	(let ((sum 0) (max-coluna 9) (tab (estado-tabuleiro estado)))
 		(dotimes (j max-coluna)
 			(incf sum (tabuleiro-slope-coluna tab j)))
 	(floor (/ sum max-coluna))))
 
-;; h5 : playfield (cell number * cell height)
-;; h5 : estado -> inteiro
-(defun th5 (estado)
+;; h7 : playfield (cell number * cell height)
+;; h7 : estado -> inteiro
+(defun h7 (estado)
 	(let ((total 0))
 		(dotimes (i 18)
 		(dotimes (j 10)
@@ -507,22 +520,25 @@
 				(incf total i))))
 	total))
 
-(defun thq (estado)
-	(qualidade estado))
 
 ;; heuristica : estado -> inteiro
 (defun heuristica (estado)
-	(+ 	(* 3 (thq estado))		; qualidade-pontos
-		(* 20 (th0 estado))		; number of holes
-		(* 1 (th1 estado))		; max height
-		(* 1 (th2 estado))		; filled cells
-		(* 1 (th3 estado))		; highest slope
-		(* 6 (th4 estado))		; average slope
-		(* 1 (th5 estado))))	; (cell #) * (cell height)
+	(let ((c0 2) (c1 20))
+		(when (< (length (estado-pecas-por-colocar estado)) 3)
+			(setf c0 3)
+			(setf c1 10))
+		(+ 	(* c0 (h0 estado))		; qualidade-pontos
+			(* c1 (h1 estado))		; number of holes
+			(* 1 (h2 estado))		; max height
+			(* 0 (h3 estado))		; min height
+			(* 1 (h4 estado))		; filled cells
+			(* 0 (h5 estado))		; highest slope
+			(* 6 (h6 estado))		; average slope
+			(* 1 (h7 estado)))))	; (cell #) * (cell height)
 
 
 ;; custo-oportunidade : estado -> inteiro
-(defun custo-oportunidade-alt (estado)
+(defun custo-oportunidade-aux (estado)
 	(/ (custo-oportunidade estado) 4))
 
 ;; Procura e Heuristica a nossa escolha
@@ -542,20 +558,51 @@
 	(procura-a* prob #'heuristica)))
 
 (defun my-procura-best (array lista-pecas)
-	(let ((estado (make-estado :pontos 0 :tabuleiro (array->tabuleiro array) :pecas-colocadas () :pecas-por-colocar lista-pecas)) (lista-accoes (list)))
+	(let (	(estado
+				(make-estado
+					:pontos 0
+					:tabuleiro (array->tabuleiro array)
+					:pecas-colocadas ()
+					:pecas-por-colocar lista-pecas))
+			(lista-accoes (list)))
 		(loop while (not (null (estado-pecas-por-colocar estado))) do
-			(let ((best-accao (get-best-accao estado)))
-				(setf estado (resultado estado (get-best-accao estado))) ; proximo estado
+			(let ((best-accao (estado-best-accao estado))) ; escolhe a melhor accao a executar
+				(setf estado (resultado estado best-accao))
 				(push best-accao lista-accoes)))
 	(reverse lista-accoes)))
 
-(defun get-best-accao (estado)
-	(defun get-f (estado) (+ (heuristica estado) (custo-oportunidade estado)))
+(defun estado-f (estado)
+	(+ (heuristica estado) (custo-oportunidade estado)))
+
+;; estado-best-accao : estado -> accao
+(defun estado-best-accao (estado)
 	(let ((actions (accoes estado)) (best-action (first (accoes estado))))
 		(loop for act in actions do ; cada accao
-			(when (< (get-f (resultado estado act)) (get-f (resultado estado best-action))) ; minimizar custo !
+			(when (< (estado-best-child-f (resultado estado act))
+					 (estado-best-child-f (resultado estado best-action))) ; minimizar custo !
 				(setf best-action act)))
 	best-action))
+
+;; devolve o melhor f dos filhos do estado
+;; estado-best-child-f : estado -> f
+(defun estado-best-child-f (estado)
+	(let ((e-acs) (best-f) (test-f) (first-a))
+		(setf e-acs (accoes estado))
+		(setf first-a (first e-acs))
+		(unless first-a		; se nao tiver filhos usa o f do pai
+			(return-from estado-best-child-f (estado-f estado)))
+		(setf best-f (estado-f (resultado estado first-a)))
+		(loop for a in e-acs do
+			(setf test-f (estado-f (resultado estado a)))
+			(setf best-f (min test-f best-f)))
+		best-f))
+
+;; estado-estados-filhos : estado -> lista
+(defun estado-estados-filhos (estado)
+	(let ((actions (accoes estado)) (filhos (list)))
+		(loop for act in actions do ; cada accao
+			(push (resultado estado act) filhos))
+		filhos))
 
 
 
