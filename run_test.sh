@@ -31,6 +31,8 @@ TOTAL=0
 PASS=0
 FAIL=0
 
+PROJ="tg031"
+
 
 function test(){
 
@@ -63,7 +65,7 @@ function test(){
 
 
 		# Run the beast
-		time clisp -repl "tg031.fas" < $IN 1> $OUT_RESULT
+		time clisp -repl "$PROJ.fas" < $IN 1> $OUT_RESULT
 
 
 		colordiff $OUT_FILTERED $OUT_RESULT
@@ -92,7 +94,7 @@ function test(){
 
 
 # Compile it
-clisp -c tg031.lisp
+clisp -c "$PROJ.lisp"
 
 
 if [ -n "$2" ]; then
