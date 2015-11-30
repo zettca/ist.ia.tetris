@@ -460,15 +460,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 ;; h1 : score cost
 ;; h1 : estado -> inteiro
 (defun h0 (estado)
@@ -500,7 +491,7 @@
 	(let ((highest 0) (max-coluna 9) (tab (estado-tabuleiro estado)))
 		(dotimes (j max-coluna)
 			(setf highest (max highest (tabuleiro-slope-coluna tab j))))
-	highest))
+		highest))
 
 ;; h6 : playfield slope average (roughness)
 ;; h6 : estado -> inteiro
@@ -508,7 +499,7 @@
 	(let ((sum 0) (max-coluna 9) (tab (estado-tabuleiro estado)))
 		(dotimes (j max-coluna)
 			(incf sum (tabuleiro-slope-coluna tab j)))
-	(floor (/ sum max-coluna))))
+		(floor (/ sum max-coluna))))
 
 ;; h7 : playfield (cell number * cell height)
 ;; h7 : estado -> inteiro
@@ -518,28 +509,20 @@
 		(dotimes (j 10)
 			(when (tabuleiro-preenchido-p (estado-tabuleiro estado) i j)
 				(incf total i))))
-	total))
+		total))
 
 
 ;; heuristica : estado -> inteiro
 (defun heuristica (estado)
-	(let ((c0 2) (c1 20))
-		(when (< (length (estado-pecas-por-colocar estado)) 3)
-			(setf c0 3)
-			(setf c1 10))
-		(+ 	(* c0 (h0 estado))		; qualidade-pontos
-			(* c1 (h1 estado))		; number of holes
-			(* 1 (h2 estado))		; max height
-			(* 0 (h3 estado))		; min height
-			(* 1 (h4 estado))		; filled cells
-			(* 0 (h5 estado))		; highest slope
-			(* 6 (h6 estado))		; average slope
-			(* 1 (h7 estado)))))	; (cell #) * (cell height)
+	(+ 	(* 0 (h0 estado))		; qualidade-pontos
+		(* 20 (h1 estado))		; number of holes
+		(* 1 (h2 estado))		; max height
+		(* 1 (h3 estado))		; min height
+		(* 1 (h4 estado))		; filled cells
+		(* 1 (h5 estado))		; highest slope
+		(* 1 (h6 estado))		; average slope
+		(* 1 (h7 estado))))		; (cell #) * (cell height)
 
-
-;; custo-oportunidade : estado -> inteiro
-(defun custo-oportunidade-aux (estado)
-	(/ (custo-oportunidade estado) 4))
 
 ;; Procura e Heuristica a nossa escolha
 ;; procura-pp : array x lista-pecas -> lista-accoes
@@ -572,7 +555,7 @@
 	(reverse lista-accoes)))
 
 (defun estado-f (estado)
-	(+ (heuristica estado) (custo-oportunidade estado)))
+	(+ (heuristica estado) (qualidade estado)))
 
 ;; estado-best-accao : estado -> accao
 (defun estado-best-accao (estado)
