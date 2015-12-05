@@ -7,6 +7,11 @@
 ;;;; 78040 Sofia Reis
 
 
+;;; Profiling variables
+(setf my-profiling-nodes-expanded 0)
+(setf my-profiling-nodes-visited 0)
+
+
 ;;; Funcoes auxiliares
 
 ;; AUX diff : inteiro x inteiro -> inteiro
@@ -284,12 +289,14 @@
 
 ;; solucao : estado -> logico
 (defun solucao (estado)
+	(incf my-profiling-nodes-visited)
 	(and (not (estado-pecas-por-colocar estado))
 		 (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)))))
 
 
 ;; accoes : estado -> lista
 (defun accoes (estado)
+	(incf my-profiling-nodes-expanded)
 	(when	(estado-final-p estado)
 			(return-from accoes (list)))
 	(let ((peca (first (estado-pecas-por-colocar estado))))
@@ -551,6 +558,7 @@
 		(loop while (not (null (estado-pecas-por-colocar estado))) do
 			(let ((best-accao (estado-best-accao estado))) ; escolhe a melhor accao a executar
 				(setf estado (resultado estado best-accao))
+				(incf my-profiling-nodes-visited)
 				(push best-accao lista-accoes)))
 	(reverse lista-accoes)))
 
@@ -587,6 +595,13 @@
 			(push (resultado estado act) filhos))
 		filhos))
 
+
+
+;; PROFILING: print stats
+(defun my-profiling-print ()
+	(format t "Visited: ~a~%" my-profiling-nodes-visited)
+	(format t "Expanded: ~a~%" my-profiling-nodes-expanded)
+	)
 
 
 
